@@ -1,0 +1,47 @@
+import speech_recognition as sr
+from gtts import gTTS
+from playsound import playsound
+import cohere
+
+co = cohere.Client("lPfRbPR9oH7Ck8iF2Xe9x2TOQbqFpNDNiiGgCEEm")
+
+def speech_to_text():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("🎙 تكلم الآن...")
+        recognizer.adjust_for_ambient_noise(source)
+        try:
+            audio = recognizer.listen(source, timeout=7, phrase_time_limit=15)
+        except sr.WaitTimeoutError:
+            return None
+
+    try:
+        # استخدام Whisper (محلي - لا يحتاج إنترنت)
+        text = recognizer.recognize_whisper(audio, language="arabic")
+        print(f"📝 النص: {text}")
+        return text
+    except Exception as e:
+        print("Error:", e)
+        return None
+
+def query_llm(prompt):
+    response = co.generate(
+        model='command-r-plus',
+        prompt=prompt,
+        max_tokens=200,
+        temperature=0.6,
+    )
+    reply = response.generations[0].text.strip()
+    print(f"🤖 الرد: {reply}")
+    return reply
+
+def text_to_speech(text):
+    tts = gTTS(text, lang='ar')
+    tts.save("response.mp3")
+    playsound("response.mp3")
+
+if __name__ == "__main__":
+    prompt = speech_to_text()
+    if prompt:
+        response = query_llm(prompt)
+        text_to_speech(response)
